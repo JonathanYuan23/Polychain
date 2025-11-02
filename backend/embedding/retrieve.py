@@ -1,4 +1,5 @@
 import os, json, faiss, numpy as np
+from typing import List, Dict, Any
 from google.cloud import aiplatform
 from vertexai.language_models import TextEmbeddingModel
 
@@ -13,7 +14,7 @@ meta = [json.loads(l) for l in open("index/meta.jsonl", encoding="utf-8")]
 aiplatform.init(project=os.environ["GOOGLE_CLOUD_PROJECT"], location=os.environ["GOOGLE_CLOUD_REGION"])
 
 # embed query
-def embed(q):
+def embed(q: str) -> np.ndarray:
     model = TextEmbeddingModel.from_pretrained(EMBED_MODEL)
     v = model.get_embeddings([q])[0].values
     v = np.array([v], dtype="float32")
@@ -21,7 +22,7 @@ def embed(q):
     return v
 
 # retrieve top k relevant chunks
-def retrieve(q: str, top_k: int = TOP_K):
+def retrieve(q: str, top_k: int = TOP_K) -> List[Dict[str, Any]]:
     qv = embed(q)
     _, I = index.search(qv, top_k)
     cands = [meta[i] for i in I[0] if i != -1]

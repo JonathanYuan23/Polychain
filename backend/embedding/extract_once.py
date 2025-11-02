@@ -1,7 +1,7 @@
 from retrieve import QUERY, retrieve
 from reranker import rerank
 
-def run():
+def run() -> None:
     cands = retrieve(QUERY)
     cands_ranked = rerank(QUERY, cands)
 

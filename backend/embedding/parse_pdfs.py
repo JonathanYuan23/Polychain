@@ -1,10 +1,11 @@
 import os, json, pathlib
+from typing import List, Dict, Any
 from pypdf import PdfReader
 
 RAW = "data/raw_pdfs"
 OUT = "data/parsed_pdfs"
 
-def parse_pdf(path):
+def parse_pdf(path: str) -> List[Dict[str, Any]]:
     reader = PdfReader(path)
     records = []
     for i, page in enumerate(reader.pages, start=1):    # pdf page numbers start at 1

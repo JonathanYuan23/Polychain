@@ -1,4 +1,5 @@
 import os, json, hashlib, math
+from typing import Generator
 
 PARSED = "data/parsed_pdfs"
 CHUNKS = "data/chunks/chunks.jsonl"
@@ -7,7 +8,7 @@ CHUNK_MAX_CHARS = int(os.environ["CHUNKING_MAX_CHARS"])
 CHUNK_STRIDE = int(os.environ["CHUNKING_STRIDE"])
 
 # gemini-embedding-001 has a max context window of 2048 tokens
-def sliding_window(text, max_chars = CHUNK_MAX_CHARS, stride = CHUNK_STRIDE):
+def sliding_window(text: str, max_chars: int = CHUNK_MAX_CHARS, stride: int = CHUNK_STRIDE) -> Generator[str, None, None]:
     for i in range(0, max(1, len(text) - max_chars + 1), stride):
         yield text[i : i + max_chars]
 

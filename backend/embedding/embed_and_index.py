@@ -1,4 +1,5 @@
 import os, json, numpy as np, faiss
+from typing import List
 from google.cloud import aiplatform
 from vertexai.language_models import TextEmbeddingModel
 
@@ -14,7 +15,7 @@ HNSW_EFSEARCH = int(os.environ["HNSW_EFSEARCH"])
 # initialize vertex ai
 aiplatform.init(project=os.environ["GOOGLE_CLOUD_PROJECT"], location=os.environ["GOOGLE_CLOUD_REGION"])
 
-def embed_texts(texts, batch_size=EMBED_BATCH):
+def embed_texts(texts: List[str], batch_size: int = EMBED_BATCH) -> np.ndarray:
     model = TextEmbeddingModel.from_pretrained(EMBED_MODEL)
     vecs = []
     for i in range(0, len(texts), batch_size):
@@ -27,7 +28,7 @@ def embed_texts(texts, batch_size=EMBED_BATCH):
     faiss.normalize_L2(X)   # L2 norm, make cosine compatible
     return X
 
-def build_hnsw(dim):
+def build_hnsw(dim: int) -> faiss.IndexHNSWFlat:
 
     # metric: use IP for cosine (vectors are L2-normalized)
     index = faiss.IndexHNSWFlat(dim, HNSW_M, faiss.METRIC_INNER_PRODUCT)
