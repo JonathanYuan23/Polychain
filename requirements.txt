@@ -1,0 +1,22 @@
+# --- core ---
+numpy>=1.26
+pypdf>=4.2.0            # PDF text extraction
+
+# --- retrieval/indexing ---
+faiss-cpu==1.8.0.post1  # vector index; use CPU build for portability
+
+# --- reranker ---
+sentence-transformers>=2.7.0
+torch>=2.2.0
+
+# --- Google Vertex AI (embeddings + Gemini) ---
+google-cloud-aiplatform>=1.66.0  # includes the 'vertexai' SDK modules
+google-auth>=2.23.4
+
+# --- validation / utils ---
+jsonschema>=4.22.0
+orjson>=3.10.7          # faster JSON (optional but nice)
+tenacity>=8.5.0         # simple retries for API calls (optional)
+
+# --- (optional) lightweight CLI/progress ---
+tqdm>=4.66.2
