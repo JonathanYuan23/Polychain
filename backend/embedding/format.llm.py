@@ -6,6 +6,8 @@ from google.cloud import aiplatform
 from vertexai.generative_models import GenerativeModel
 
 from retrieve import retrieve
+from reranker import rerank
+from extract import ENUM as RELATIONSHIP_TYPES
 
 # Initialize Vertex AI
 aiplatform.init(
@@ -46,12 +48,13 @@ def format_with_llm(
     context = "\n".join(context_parts)
     
     # Create prompt for structured relationship extraction
+    relationship_types_str = ", ".join([f'"{rt}"' for rt in RELATIONSHIP_TYPES])
     prompt = f"""Extract explicit buyer-supplier, contract manufacturing, distributors, logistics, and cloud/software provider relationships from the following document chunks.
 
 Return ONLY valid JSON array of relationship objects. Each relationship object must have exactly these fields:
 - buyer: string (canonical ID/name of the buyer company, e.g., "NVIDIA")
 - supplier: string (canonical ID/name of the supplier company, e.g., "TSMC")
-- relation_type: string (one of: "supplies_to", "manufactures_for", "assembles_for", "distributes_for", "logistics_for", "provides_service_to", "contracts_with")
+- relation_type: string (must be one of: {relationship_types_str})
 - role: string (one of: "foundry", "HBM", "OSAT", "logistics", "distributor", "cloud", "software", "contract_manufacturer", or other appropriate role)
 - evidence_span: string (exact quoted text from the document that supports this relationship)
 - doc_url: string (format as "doc_id.pdf" where doc_id comes from the chunk metadata, e.g., "nvidia-10k.pdf")
@@ -137,8 +140,11 @@ def format_retrieve_and_format(
     else:
         retrieved_chunks = retrieve(query, top_k=top_k)
     
+    # Rerank the retrieved chunks for better relevance
+    reranked_chunks = rerank(query, retrieved_chunks)
+    
     # Extract relationships using LLM
-    relationships = format_with_llm(query, retrieved_chunks, model_name)
+    relationships = format_with_llm(query, reranked_chunks, model_name)
     
     return relationships
 
