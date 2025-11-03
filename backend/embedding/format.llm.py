@@ -62,7 +62,7 @@ Return ONLY valid JSON array of relationship objects. Each relationship object m
 - effective_end: string or null (date in YYYY-MM-DD format if mentioned, otherwise null)
 - confidence: float (0.0 to 1.0, based on how explicit and clear the relationship is)
 
-Only extract relationships that are explicitly stated in the text. Do not infer relationships that are not clearly mentioned.
+Only extract relationships that are explicitly stated in the text. Do not infer relationships that are not clearly mentioned. Only extract relationships where the buyer is an actual explicit company name and the supplier is also an explicit company name.
 If no relationships are found, return an empty array [].
 
 Document Chunks:
