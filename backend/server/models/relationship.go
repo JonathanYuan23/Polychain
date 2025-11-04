@@ -2,14 +2,15 @@ package models
 
 // Relationship represents a buyer-supplier relationship
 type Relationship struct {
-	Buyer         string   `json:"buyer"`
-	Supplier      string   `json:"supplier"`
-	RelationType  string   `json:"relation_type"`
-	Product       []string `json:"product"`
-	Reason        string   `json:"reason"`
-	Value         string   `json:"value"`
-	ExtractedFrom string   `json:"extracted_from"`
-	Evidence      string   `json:"evidence"`
+	Buyer          string  `json:"buyer"`
+	Supplier       string  `json:"supplier"`
+	RelationType   string  `json:"relation_type"`
+	Role           string  `json:"role"`
+	EvidenceSpan   string  `json:"evidence_span"`
+	DocURL         string  `json:"doc_url"`
+	EffectiveStart *string `json:"effective_start"`
+	EffectiveEnd   *string `json:"effective_end"`
+	Confidence     float64 `json:"confidence"`
 }
 
 // CompanyRelationships represents all relationships for a company

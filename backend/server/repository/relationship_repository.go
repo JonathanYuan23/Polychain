@@ -28,24 +28,26 @@ func (r *RelationshipRepository) CreateRelationship(ctx context.Context, rel mod
 		MERGE (supplier:Company {name: $supplier})
 		CREATE (supplier)-[rel:SUPPLIES {
 			relation_type: $relation_type,
-			product: $product,
-			reason: $reason,
-			value: $value,
-			extracted_from: $extracted_from,
-			evidence: $evidence
+			role: $role,
+			evidence_span: $evidence_span,
+			doc_url: $doc_url,
+			effective_start: $effective_start,
+			effective_end: $effective_end,
+			confidence: $confidence
 		}]->(buyer)
 		RETURN rel
 	`
 
 	params := map[string]interface{}{
-		"buyer":          rel.Buyer,
-		"supplier":       rel.Supplier,
-		"relation_type":  rel.RelationType,
-		"product":        rel.Product,
-		"reason":         rel.Reason,
-		"value":          rel.Value,
-		"extracted_from": rel.ExtractedFrom,
-		"evidence":       rel.Evidence,
+		"buyer":           rel.Buyer,
+		"supplier":        rel.Supplier,
+		"relation_type":   rel.RelationType,
+		"role":            rel.Role,
+		"evidence_span":   rel.EvidenceSpan,
+		"doc_url":         rel.DocURL,
+		"effective_start": rel.EffectiveStart,
+		"effective_end":   rel.EffectiveEnd,
+		"confidence":      rel.Confidence,
 	}
 
 	_, err := session.Run(ctx, query, params)
@@ -93,11 +95,12 @@ func (r *RelationshipRepository) GetCompanyRelationships(ctx context.Context, co
 		RETURN supplier.name AS supplier,
 		       buyer.name AS buyer,
 		       rel.relation_type AS relation_type,
-		       rel.product AS product,
-		       rel.reason AS reason,
-		       rel.value AS value,
-		       rel.extracted_from AS extracted_from,
-		       rel.evidence AS evidence
+		       rel.role AS role,
+		       rel.evidence_span AS evidence_span,
+		       rel.doc_url AS doc_url,
+		       rel.effective_start AS effective_start,
+		       rel.effective_end AS effective_end,
+		       rel.confidence AS confidence
 	`
 
 	suppliersResult, err := session.Run(ctx, suppliersQuery, map[string]interface{}{"company": companyName})
@@ -108,14 +111,15 @@ func (r *RelationshipRepository) GetCompanyRelationships(ctx context.Context, co
 	for suppliersResult.Next(ctx) {
 		record := suppliersResult.Record()
 		result.Suppliers = append(result.Suppliers, models.Relationship{
-			Supplier:      getStringValue(record, "supplier"),
-			Buyer:         getStringValue(record, "buyer"),
-			RelationType:  getStringValue(record, "relation_type"),
-			Product:       getStringArrayValue(record, "product"),
-			Reason:        getStringValue(record, "reason"),
-			Value:         getStringValue(record, "value"),
-			ExtractedFrom: getStringValue(record, "extracted_from"),
-			Evidence:      getStringValue(record, "evidence"),
+			Supplier:       getStringValue(record, "supplier"),
+			Buyer:          getStringValue(record, "buyer"),
+			RelationType:   getStringValue(record, "relation_type"),
+			Role:           getStringValue(record, "role"),
+			EvidenceSpan:   getStringValue(record, "evidence_span"),
+			DocURL:         getStringValue(record, "doc_url"),
+			EffectiveStart: getStringPointer(record, "effective_start"),
+			EffectiveEnd:   getStringPointer(record, "effective_end"),
+			Confidence:     getFloat64Value(record, "confidence"),
 		})
 	}
 
@@ -125,11 +129,12 @@ func (r *RelationshipRepository) GetCompanyRelationships(ctx context.Context, co
 		RETURN supplier.name AS supplier,
 		       buyer.name AS buyer,
 		       rel.relation_type AS relation_type,
-		       rel.product AS product,
-		       rel.reason AS reason,
-		       rel.value AS value,
-		       rel.extracted_from AS extracted_from,
-		       rel.evidence AS evidence
+		       rel.role AS role,
+		       rel.evidence_span AS evidence_span,
+		       rel.doc_url AS doc_url,
+		       rel.effective_start AS effective_start,
+		       rel.effective_end AS effective_end,
+		       rel.confidence AS confidence
 	`
 
 	buyersResult, err := session.Run(ctx, buyersQuery, map[string]interface{}{"company": companyName})
@@ -140,18 +145,49 @@ func (r *RelationshipRepository) GetCompanyRelationships(ctx context.Context, co
 	for buyersResult.Next(ctx) {
 		record := buyersResult.Record()
 		result.Buyers = append(result.Buyers, models.Relationship{
-			Supplier:      getStringValue(record, "supplier"),
-			Buyer:         getStringValue(record, "buyer"),
-			RelationType:  getStringValue(record, "relation_type"),
-			Product:       getStringArrayValue(record, "product"),
-			Reason:        getStringValue(record, "reason"),
-			Value:         getStringValue(record, "value"),
-			ExtractedFrom: getStringValue(record, "extracted_from"),
-			Evidence:      getStringValue(record, "evidence"),
+			Supplier:       getStringValue(record, "supplier"),
+			Buyer:          getStringValue(record, "buyer"),
+			RelationType:   getStringValue(record, "relation_type"),
+			Role:           getStringValue(record, "role"),
+			EvidenceSpan:   getStringValue(record, "evidence_span"),
+			DocURL:         getStringValue(record, "doc_url"),
+			EffectiveStart: getStringPointer(record, "effective_start"),
+			EffectiveEnd:   getStringPointer(record, "effective_end"),
+			Confidence:     getFloat64Value(record, "confidence"),
 		})
 	}
 
 	return result, nil
+}
+
+// SearchCompanies searches for companies by name (fuzzy matching)
+func (r *RelationshipRepository) SearchCompanies(ctx context.Context, query string) ([]string, error) {
+	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	defer session.Close(ctx)
+
+	// Get all unique company names that match the query (case-insensitive)
+	searchQuery := `
+		MATCH (c:Company)
+		WHERE toLower(c.name) CONTAINS toLower($query)
+		RETURN DISTINCT c.name AS name
+		ORDER BY c.name
+		LIMIT 20
+	`
+
+	result, err := session.Run(ctx, searchQuery, map[string]interface{}{"query": query})
+	if err != nil {
+		return nil, fmt.Errorf("failed to search companies: %w", err)
+	}
+
+	var companies []string
+	for result.Next(ctx) {
+		record := result.Record()
+		if name := getStringValue(record, "name"); name != "" {
+			companies = append(companies, name)
+		}
+	}
+
+	return companies, nil
 }
 
 // Helper functions to safely extract values from Neo4j records
@@ -166,19 +202,33 @@ func getStringValue(record *neo4j.Record, key string) string {
 	return ""
 }
 
-func getStringArrayValue(record *neo4j.Record, key string) []string {
+func getStringPointer(record *neo4j.Record, key string) *string {
+	val, ok := record.Get(key)
+	if !ok || val == nil {
+		return nil
+	}
+	if str, ok := val.(string); ok {
+		return &str
+	}
+	return nil
+}
+
+func getFloat64Value(record *neo4j.Record, key string) float64 {
 	val, ok := record.Get(key)
 	if !ok {
-		return []string{}
+		return 0.0
 	}
-	if arr, ok := val.([]interface{}); ok {
-		result := make([]string, 0, len(arr))
-		for _, item := range arr {
-			if str, ok := item.(string); ok {
-				result = append(result, str)
-			}
-		}
-		return result
+	// Try float64 first
+	if f64, ok := val.(float64); ok {
+		return f64
 	}
-	return []string{}
+	// Try int64 (Neo4j might return integers)
+	if i64, ok := val.(int64); ok {
+		return float64(i64)
+	}
+	// Try int
+	if i, ok := val.(int); ok {
+		return float64(i)
+	}
+	return 0.0
 }

@@ -51,6 +51,7 @@ func main() {
 	// Relationship routes
 	api.HandleFunc("/relationships", relationshipHandler.CreateRelationship).Methods("POST")
 	api.HandleFunc("/relationships/bulk", relationshipHandler.BulkLoadRelationships).Methods("POST")
+	api.HandleFunc("/companies/search", relationshipHandler.SearchCompanies).Methods("GET")
 	api.HandleFunc("/companies/{name}/relationships", relationshipHandler.GetCompanyRelationships).Methods("GET")
 
 	// Health check

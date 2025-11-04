@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { CompanySearch } from '@/components/CompanySearch';
 import { SupplyChainGraph } from '@/components/SupplyChainGraph';
-import { MetricsPanel } from '@/components/MetricsPanel';
 import { ControlPanel } from '@/components/ControlPanel';
 import { DependenciesListView } from '@/components/DependenciesListView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Company } from '@/types/supply-chain';
-import { getCompanyNetwork } from '@/data/sample-data';
-import { Activity, Globe, TrendingUp, Network, List } from 'lucide-react';
+import { useCompanyRelationships, useHealthCheck } from '@/hooks/use-api';
+import { transformCompanyRelationships } from '@/utils/data-transform';
+import { Activity, Globe, TrendingUp, Network, List, Loader2, AlertCircle } from 'lucide-react';
 
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | undefined>();
@@ -24,21 +24,47 @@ const Index = () => {
     console.log('Clicked node:', companyId);
   }, []);
 
-  const currentNetwork = selectedCompany ? getCompanyNetwork(selectedCompany.id) : { companies: [], relationships: [] };
+  // Fetch data from backend API
+  const { data: relationshipsData, isLoading, isError, error } = useCompanyRelationships(selectedCompany?.name);
+  const { data: health, isError: healthError } = useHealthCheck();
+
+  // Transform backend data to frontend format
+  const currentNetwork = relationshipsData 
+    ? transformCompanyRelationships(relationshipsData)
+    : { companies: [], relationships: [] };
 
   // Filter relationships based on controls
   const filteredRelationships = currentNetwork.relationships.filter(rel => {
+    // Value filters
     if (rel.value < minValue) return false;
     
     if (selectedFilters.includes('high_value') && rel.value <= 10000000000) return false;
     if (selectedFilters.includes('medium_value') && (rel.value <= 1000000000 || rel.value > 10000000000)) return false;
     if (selectedFilters.includes('low_value') && rel.value > 1000000000) return false;
     
-    if (selectedFilters.includes('suppliers') && rel.relationship_type !== 'supplier') return false;
-    if (selectedFilters.includes('customers') && rel.relationship_type !== 'customer') return false;
-    if (selectedFilters.includes('partners') && rel.relationship_type !== 'partner') return false;
+    // Relationship type filters - use OR logic
+    const typeFilters = ['suppliers', 'customers', 'partners'].filter(f => selectedFilters.includes(f));
+    if (typeFilters.length > 0) {
+      const matchesType = 
+        (selectedFilters.includes('suppliers') && rel.relationship_type === 'supplier') ||
+        (selectedFilters.includes('customers') && rel.relationship_type === 'customer') ||
+        (selectedFilters.includes('partners') && rel.relationship_type === 'partner');
+      
+      if (!matchesType) return false;
+    }
     
     return true;
+  });
+
+  // Filter companies to only show those involved in filtered relationships
+  const filteredCompanies = currentNetwork.companies.filter(company => {
+    // Always show the selected company
+    if (company.id === selectedCompany?.id) return true;
+    
+    // Show company if it's part of any filtered relationship
+    return filteredRelationships.some(rel => 
+      rel.from === company.id || rel.to === company.id
+    );
   });
 
   return (
@@ -60,8 +86,12 @@ const Index = () => {
                 <TrendingUp className="h-3 w-3" />
                 <span>REAL-TIME</span>
               </div>
-              <div className="px-2 py-1 bg-terminal-green text-black rounded text-xs font-semibold">
-                LIVE
+              <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                healthError 
+                  ? 'bg-terminal-red text-white' 
+                  : 'bg-terminal-green text-black'
+              }`}>
+                {healthError ? 'OFFLINE' : 'LIVE'}
               </div>
             </div>
           </div>
@@ -107,14 +137,46 @@ const Index = () => {
                 {selectedCompany ? `${selectedCompany.name} Supply Chain Network` : 'Select a company to visualize network'}
               </h2>
               <div className="flex items-center gap-4 text-xs terminal-text">
-                <span>Nodes: {currentNetwork.companies.length}</span>
+                <span>Nodes: {filteredCompanies.length}</span>
                 <span>Edges: {filteredRelationships.length}</span>
                 <span>Total Value: ${(filteredRelationships.reduce((sum, rel) => sum + rel.value, 0) / 1000000000).toFixed(1)}B</span>
               </div>
             </div>
           </div>
           <div className="flex-1 bg-background">
-            {selectedCompany ? (
+            {!selectedCompany ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Supply Chain Intelligence Dashboard</h3>
+                  <p className="text-muted-foreground max-w-md">
+                    Search and select a company above to visualize its supply chain network, 
+                    relationships, and financial flows in real-time.
+                  </p>
+                </div>
+              </div>
+            ) : isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="h-16 w-16 text-terminal-yellow mx-auto mb-4 animate-spin" />
+                  <h3 className="text-xl font-semibold mb-2 text-terminal-yellow">Loading Network...</h3>
+                  <p className="text-muted-foreground">Fetching supply chain data for {selectedCompany.name}</p>
+                </div>
+              </div>
+            ) : isError ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <AlertCircle className="h-16 w-16 text-terminal-red mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2 text-terminal-red">Connection Error</h3>
+                  <p className="text-muted-foreground max-w-md mb-4">
+                    {error?.message || 'Failed to fetch data from backend'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Make sure the backend server is running at http://localhost:8080
+                  </p>
+                </div>
+              </div>
+            ) : (
               <Tabs defaultValue="graph" className="h-full flex flex-col">
                 <div className="border-b border-terminal-grid px-4">
                   <TabsList className="bg-terminal-panel border border-terminal-grid">
@@ -130,7 +192,7 @@ const Index = () => {
                 </div>
                 <TabsContent value="graph" className="flex-1 m-0">
                   <SupplyChainGraph
-                    companies={currentNetwork.companies}
+                    companies={filteredCompanies}
                     relationships={filteredRelationships}
                     selectedCompanyId={selectedCompany.id}
                     onNodeClick={handleNodeClick}
@@ -138,35 +200,15 @@ const Index = () => {
                 </TabsContent>
                 <TabsContent value="list" className="flex-1 m-0">
                   <DependenciesListView
-                    companies={currentNetwork.companies}
+                    companies={filteredCompanies}
                     relationships={filteredRelationships}
                     selectedCompany={selectedCompany}
                     onCompanyClick={handleNodeClick}
                   />
                 </TabsContent>
               </Tabs>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Supply Chain Intelligence Dashboard</h3>
-                  <p className="text-muted-foreground max-w-md">
-                    Search and select a company above to visualize its supply chain network, 
-                    relationships, and financial flows in real-time.
-                  </p>
-                </div>
-              </div>
             )}
           </div>
-        </div>
-
-        {/* Right Metrics Panel */}
-        <div className="w-96 border-l border-terminal-grid bg-terminal-panel">
-          <MetricsPanel
-            companies={currentNetwork.companies}
-            relationships={filteredRelationships}
-            selectedCompany={selectedCompany}
-          />
         </div>
       </div>
 
@@ -174,7 +216,10 @@ const Index = () => {
       <footer className="terminal-header border-t border-terminal-grid">
         <div className="flex items-center justify-between text-xs terminal-text">
           <div className="flex items-center gap-4">
-            <span className="text-terminal-green">● CONNECTED</span>
+            <span className={healthError ? 'text-terminal-red' : 'text-terminal-green'}>
+              ● {healthError ? 'DISCONNECTED' : 'CONNECTED'}
+            </span>
+            <span>Backend: {healthError ? 'Offline' : health?.status || 'Online'}</span>
             <span>Data as of: {new Date().toLocaleDateString()}</span>
           </div>
           <div className="flex items-center gap-4">

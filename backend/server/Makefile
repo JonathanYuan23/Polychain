@@ -32,6 +32,27 @@ seed-curl: ## Load seed data using curl
 		-H "Content-Type: application/json" \
 		-d @seed_data.json
 
+clear-db: ## Clear all data from Neo4j database
+	@echo "🗑️  Clearing Neo4j database..."
+	@echo "This will delete all nodes and relationships."
+	@echo ""
+	@read -p "Are you sure you want to continue? (yes/no): " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		echo ""; \
+		echo "Connecting to Neo4j..."; \
+		cypher-shell -a "$${NEO4J_URI:-neo4j://136.111.70.101:7687}" \
+			-u "$${NEO4J_USERNAME:-neo4j}" \
+			-p "$${NEO4J_PASSWORD:-password}" \
+			"MATCH (n) DETACH DELETE n" && \
+		echo "✅ Database cleared successfully!" || \
+		(echo "❌ Failed to clear database."; \
+		 echo ""; \
+		 echo "Alternative: Run this query in Neo4j Browser:"; \
+		 echo "  MATCH (n) DETACH DELETE n"); \
+	else \
+		echo "❌ Operation cancelled."; \
+	fi
+
 dev: deps run ## Setup and run in development mode
 
 docker-build: ## Build Docker image
