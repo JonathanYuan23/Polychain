@@ -23,19 +23,19 @@ func (r *RelationshipRepository) CreateRelationship(ctx context.Context, rel mod
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(ctx)
 
+	// Use MERGE on the relationship to avoid creating duplicates when the same
+	// supplier -> buyer relation (with the same identifying properties) already exists.
+	// We merge by (supplier)-[r:SUPPLIES {relation_type, role, doc_url}]->(buyer)
+	// and set the remaining properties only when the relationship is created.
 	query := `
 		MERGE (buyer:Company {name: $buyer})
 		MERGE (supplier:Company {name: $supplier})
-		CREATE (supplier)-[rel:SUPPLIES {
-			relation_type: $relation_type,
-			role: $role,
-			evidence_span: $evidence_span,
-			doc_url: $doc_url,
-			effective_start: $effective_start,
-			effective_end: $effective_end,
-			confidence: $confidence
-		}]->(buyer)
-		RETURN rel
+		MERGE (supplier)-[r:SUPPLIES {relation_type: $relation_type, role: $role, doc_url: $doc_url}]->(buyer)
+		ON CREATE SET r.evidence_span = $evidence_span,
+					  r.effective_start = $effective_start,
+					  r.effective_end = $effective_end,
+					  r.confidence = $confidence
+		RETURN r
 	`
 
 	params := map[string]interface{}{
@@ -43,8 +43,8 @@ func (r *RelationshipRepository) CreateRelationship(ctx context.Context, rel mod
 		"supplier":        rel.Supplier,
 		"relation_type":   rel.RelationType,
 		"role":            rel.Role,
-		"evidence_span":   rel.EvidenceSpan,
 		"doc_url":         rel.DocURL,
+		"evidence_span":   rel.EvidenceSpan,
 		"effective_start": rel.EffectiveStart,
 		"effective_end":   rel.EffectiveEnd,
 		"confidence":      rel.Confidence,
@@ -63,19 +63,52 @@ func (r *RelationshipRepository) BulkCreateRelationships(ctx context.Context, re
 	session := r.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(ctx)
 
-	created := 0
-	var failed []string
+	// Convert relationships to a slice of maps for the UNWIND query parameters
+	relMaps := make([]map[string]interface{}, 0, len(relationships))
+	for _, rel := range relationships {
+		m := map[string]interface{}{
+			"buyer":           rel.Buyer,
+			"supplier":        rel.Supplier,
+			"relation_type":   rel.RelationType,
+			"role":            rel.Role,
+			"doc_url":         rel.DocURL,
+			"evidence_span":   rel.EvidenceSpan,
+			"effective_start": rel.EffectiveStart,
+			"effective_end":   rel.EffectiveEnd,
+			"confidence":      rel.Confidence,
+		}
+		relMaps = append(relMaps, m)
+	}
 
-	for i, rel := range relationships {
-		err := r.CreateRelationship(ctx, rel)
-		if err != nil {
-			failed = append(failed, fmt.Sprintf("Record %d: %s -> %s (error: %v)", i, rel.Supplier, rel.Buyer, err))
-		} else {
-			created++
+	// UNWIND and MERGE relationships in a single query to make seeding idempotent
+	query := `
+		UNWIND $rels AS rel
+		MERGE (buyer:Company {name: rel.buyer})
+		MERGE (supplier:Company {name: rel.supplier})
+		MERGE (supplier)-[r:SUPPLIES {relation_type: rel.relation_type, role: rel.role, doc_url: rel.doc_url}]->(buyer)
+		ON CREATE SET r.evidence_span = rel.evidence_span,
+					  r.effective_start = rel.effective_start,
+					  r.effective_end = rel.effective_end,
+					  r.confidence = rel.confidence
+		RETURN count(r) AS processed
+	`
+
+	result, err := session.Run(ctx, query, map[string]interface{}{"rels": relMaps})
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed to bulk create relationships: %w", err)
+	}
+
+	created := 0
+	if result.Next(ctx) {
+		// processed will be the number of rows (relationships) handled by the query
+		if v, ok := result.Record().Get("processed"); ok {
+			if i, ok := v.(int64); ok {
+				created = int(i)
+			}
 		}
 	}
 
-	return created, failed, nil
+	return created, nil, nil
 }
 
 // GetCompanyRelationships retrieves all relationships for a company
