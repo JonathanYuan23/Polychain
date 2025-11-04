@@ -49,8 +49,7 @@ export const DependenciesListView = ({
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(rel => 
-        rel.counterparty?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        rel.counterparty?.ticker?.toLowerCase().includes(searchQuery.toLowerCase())
+        rel.counterparty?.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -62,8 +61,8 @@ export const DependenciesListView = ({
     // Apply sorting
     if (sortField && sortDirection) {
       filtered.sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
+        let aValue: string | number;
+        let bValue: string | number;
 
         switch (sortField) {
           case 'company':
@@ -86,7 +85,7 @@ export const DependenciesListView = ({
             return 0;
         }
 
-        if (typeof aValue === 'string') {
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
           aValue = aValue.toLowerCase();
           bValue = bValue.toLowerCase();
         }
@@ -253,12 +252,7 @@ export const DependenciesListView = ({
                 onClick={() => rel.counterparty && onCompanyClick(rel.counterparty.id)}
               >
                 <td className="font-medium">
-                  <div>
-                    <div className="terminal-highlight">{rel.counterparty?.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {rel.counterparty?.ticker}
-                    </div>
-                  </div>
+                  <div className="terminal-highlight">{rel.counterparty?.name}</div>
                 </td>
                 <td>
                   <Badge 

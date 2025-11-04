@@ -27,8 +27,8 @@ export const SupplyChainGraph = ({
     const nodes = new DataSet(
       companies.map(company => ({
         id: company.id,
-        label: `${company.name}\n(${company.ticker})`,
-        title: `${company.name} (${company.ticker})\n${company.industry}`,
+        label: company.name,
+        title: `${company.name}\n${company.industry}`,
         color: {
           background: company.id === selectedCompanyId 
             ? 'hsl(45, 100%, 50%)' 
@@ -45,10 +45,11 @@ export const SupplyChainGraph = ({
         },
         font: {
           color: company.id === selectedCompanyId ? '#000' : '#fff',
-          size: 12,
-          face: 'monospace'
+          size: 14,
+          face: 'monospace',
+          bold: '600'
         },
-        size: company.id === selectedCompanyId ? 40 : 30,
+        size: company.id === selectedCompanyId ? 35 : 25,
         shape: 'box',
         margin: { top: 10, right: 10, bottom: 10, left: 10 }
       }))
@@ -57,30 +58,16 @@ export const SupplyChainGraph = ({
     // Create edges
     const edges = new DataSet(
       relationships.map(rel => {
-        const edgeColor = rel.value > 15000000000 
-          ? 'hsl(0, 70%, 55%)'
-          : rel.value > 8000000000
-            ? 'hsl(30, 100%, 55%)'
-            : 'hsl(120, 50%, 45%)';
-
         return {
           id: rel.id,
           from: rel.from,
           to: rel.to,
-          label: formatCurrency(rel.value),
-          arrows: { to: { enabled: true, scaleFactor: 1.2 } },
+          arrows: 'to',
           color: {
-            color: edgeColor,
+            color: 'hsl(15, 85%, 55%)', // Orange/coral color - distinct from all node colors
             highlight: 'hsl(45, 100%, 50%)'
           },
-          font: {
-            color: '#fff',
-            size: 10,
-            face: 'monospace',
-            strokeWidth: 3,
-            strokeColor: '#000'
-          },
-          width: Math.max(2, Math.min(8, rel.value / 3000000000)),
+          width: 3,
           smooth: {
             enabled: true,
             type: 'curvedCW',
@@ -104,6 +91,16 @@ export const SupplyChainGraph = ({
           enabled: true,
           type: 'curvedCW',
           roundness: 0.2
+        },
+        arrows: {
+          to: {
+            enabled: true,
+            scaleFactor: 1.5
+          }
+        },
+        chosen: {
+          edge: true,
+          label: true
         }
       },
       physics: {
@@ -119,8 +116,10 @@ export const SupplyChainGraph = ({
         },
         stabilization: {
           enabled: true,
-          iterations: 100,
-          updateInterval: 25
+          iterations: 200,
+          updateInterval: 25,
+          onlyDynamicEdges: false,
+          fit: true
         }
       },
       interaction: {
@@ -147,6 +146,13 @@ export const SupplyChainGraph = ({
       if (event.nodes.length > 0) {
         const nodeId = event.nodes[0];
         onNodeClick(nodeId);
+      }
+    });
+
+    // Stop physics after stabilization to prevent continuous movement
+    networkRef.current.on('stabilizationIterationsDone', () => {
+      if (networkRef.current) {
+        networkRef.current.setOptions({ physics: { enabled: false } });
       }
     });
 

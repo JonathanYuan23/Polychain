@@ -93,6 +93,28 @@ func (h *RelationshipHandler) GetCompanyRelationships(w http.ResponseWriter, r *
 	respondWithJSON(w, http.StatusOK, result)
 }
 
+// SearchCompanies handles GET /api/companies/search?q={query}
+func (h *RelationshipHandler) SearchCompanies(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		respondWithError(w, http.StatusBadRequest, "Search query parameter 'q' is required")
+		return
+	}
+
+	ctx := context.Background()
+	companies, err := h.repo.SearchCompanies(ctx, query)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"query":     query,
+		"companies": companies,
+		"count":     len(companies),
+	})
+}
+
 // Helper functions
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, models.ErrorResponse{
