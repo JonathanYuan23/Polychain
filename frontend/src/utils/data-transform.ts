@@ -21,6 +21,7 @@ export const transformRelationship = (
     to: rel.buyer,
     value: rel.confidence * 100, // Use confidence as a percentage for value
     relationship_type: isSupplier ? 'supplier' : 'customer',
+    relation_type: rel.relation_type,
     year: new Date().getFullYear(),
   };
 };
