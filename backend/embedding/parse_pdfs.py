@@ -21,21 +21,24 @@ def parse_pdf(path: str) -> List[Dict[str, Any]]:
 
 if __name__ == "__main__":
     for f in os.listdir(RAW):
-        if not f.lower().endswith(".pdf"): continue
+        try:
+            if not f.lower().endswith(".pdf"): continue
 
-        out = os.path.join(OUT, f"{pathlib.Path(f).stem}.jsonl")
-        
-        # skip if already parsed
-        if os.path.exists(out):
-            print(f"Skipping {f} (already parsed)")
-            continue
+            out = os.path.join(OUT, f"{pathlib.Path(f).stem}.jsonl")
+            
+            # skip if already parsed
+            if os.path.exists(out):
+                print(f"Skipping {f} (already parsed)")
+                continue
 
-        recs = parse_pdf(os.path.join(RAW, f))
+            recs = parse_pdf(os.path.join(RAW, f))
 
-        with open(out, "w", encoding="utf-8") as w:
-            for r in recs:
-                w.write(json.dumps(r, ensure_ascii=False) + "\n")
-        
-        print(f"Parsed {f}")
+            with open(out, "w", encoding="utf-8") as w:
+                for r in recs:
+                    w.write(json.dumps(r, ensure_ascii=False) + "\n")
+            
+            print(f"Parsed {f}")
+        except Exception as e:
+            print(f"Error parsing {f}: {e}")
 
     print("Done. Output in:", OUT)

@@ -21,3 +21,4 @@ tenacity>=8.5.0         # simple retries for API calls (optional)
 
 # --- (optional) lightweight CLI/progress ---
 tqdm>=4.66.2
+cryptography>=3.1
