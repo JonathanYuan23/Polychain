@@ -1,14 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Filter, Layers, Zap } from 'lucide-react';
+import { Settings, Filter, Layers } from 'lucide-react';
 
 interface ControlPanelProps {
   networkDepth: number;
   onNetworkDepthChange: (depth: number) => void;
-  minValue: number;
-  onMinValueChange: (value: number) => void;
   selectedFilters: string[];
   onFilterChange: (filters: string[]) => void;
 }
@@ -16,18 +13,13 @@ interface ControlPanelProps {
 export const ControlPanel = ({
   networkDepth,
   onNetworkDepthChange,
-  minValue,
-  onMinValueChange,
   selectedFilters,
   onFilterChange
 }: ControlPanelProps) => {
   const filterOptions = [
     { value: 'suppliers', label: 'Suppliers' },
     { value: 'customers', label: 'Customers' },
-    { value: 'partners', label: 'Partners' },
-    { value: 'high_value', label: 'High Value (>$10B)' },
-    { value: 'medium_value', label: 'Medium Value ($1B-$10B)' },
-    { value: 'low_value', label: 'Low Value (<$1B)' }
+    { value: 'partners', label: 'Partners' }
   ];
 
   const toggleFilter = (filter: string) => {
@@ -68,24 +60,6 @@ export const ControlPanel = ({
         </Select>
       </div>
 
-      {/* Minimum Value Filter */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-terminal-orange" />
-          <label className="terminal-text text-sm font-medium">
-            Min Relationship Value: ${(minValue / 1000000000).toFixed(1)}B
-          </label>
-        </div>
-        <Slider
-          value={[minValue]}
-          onValueChange={([value]) => onMinValueChange(value)}
-          max={20000000000}
-          min={0}
-          step={1000000000}
-          className="w-full"
-        />
-      </div>
-
       {/* Relationship Type Filters */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -120,22 +94,10 @@ export const ControlPanel = ({
             className="w-full justify-start terminal-text border-terminal-grid hover:bg-muted"
             onClick={() => {
               onNetworkDepthChange(1);
-              onMinValueChange(0);
               onFilterChange(['suppliers', 'customers']);
             }}
           >
             Reset to Default View
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start terminal-text border-terminal-grid hover:bg-muted"
-            onClick={() => {
-              onFilterChange(['high_value']);
-              onMinValueChange(10000000000);
-            }}
-          >
-            High Value Only (&gt;$10B)
           </Button>
           <Button 
             variant="outline" 

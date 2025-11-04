@@ -12,7 +12,6 @@ import { Activity, Globe, TrendingUp, Network, List, Loader2, AlertCircle } from
 const Index = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | undefined>();
   const [networkDepth, setNetworkDepth] = useState(1);
-  const [minValue, setMinValue] = useState(0);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['suppliers', 'customers']);
 
   const handleCompanySelect = useCallback((company: Company) => {
@@ -35,13 +34,6 @@ const Index = () => {
 
   // Filter relationships based on controls
   const filteredRelationships = currentNetwork.relationships.filter(rel => {
-    // Value filters
-    if (rel.value < minValue) return false;
-    
-    if (selectedFilters.includes('high_value') && rel.value <= 10000000000) return false;
-    if (selectedFilters.includes('medium_value') && (rel.value <= 1000000000 || rel.value > 10000000000)) return false;
-    if (selectedFilters.includes('low_value') && rel.value > 1000000000) return false;
-    
     // Relationship type filters - use OR logic
     const typeFilters = ['suppliers', 'customers', 'partners'].filter(f => selectedFilters.includes(f));
     if (typeFilters.length > 0) {
@@ -122,8 +114,6 @@ const Index = () => {
           <ControlPanel
             networkDepth={networkDepth}
             onNetworkDepthChange={setNetworkDepth}
-            minValue={minValue}
-            onMinValueChange={setMinValue}
             selectedFilters={selectedFilters}
             onFilterChange={setSelectedFilters}
           />
@@ -139,7 +129,6 @@ const Index = () => {
               <div className="flex items-center gap-4 text-xs terminal-text">
                 <span>Nodes: {filteredCompanies.length}</span>
                 <span>Edges: {filteredRelationships.length}</span>
-                <span>Total Value: ${(filteredRelationships.reduce((sum, rel) => sum + rel.value, 0) / 1000000000).toFixed(1)}B</span>
               </div>
             </div>
           </div>
