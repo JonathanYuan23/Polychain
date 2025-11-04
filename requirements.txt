@@ -12,6 +12,7 @@ torch>=2.2.0
 # --- Google Vertex AI (embeddings + Gemini) ---
 google-cloud-aiplatform>=1.66.0  # includes the 'vertexai' SDK modules
 google-auth>=2.23.4
+importlib-metadata>=6.0.0        # Fix for Python 3.9 compatibility
 
 # --- validation / utils ---
 jsonschema>=4.22.0

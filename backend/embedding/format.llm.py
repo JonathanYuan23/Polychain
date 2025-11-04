@@ -16,7 +16,7 @@ aiplatform.init(
 )
 
 # Use Gemini model for formatting
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-pro")
 
 
 def format_with_llm(
@@ -56,13 +56,13 @@ Return ONLY valid JSON array of relationship objects. Each relationship object m
 - supplier: string (canonical ID/name of the supplier company, e.g., "TSMC")
 - relation_type: string (must be one of: {relationship_types_str})
 - role: string (one of: "foundry", "HBM", "OSAT", "logistics", "distributor", "cloud", "software", "contract_manufacturer", or other appropriate role)
-- evidence_span: string (exact quoted text from the document that supports this relationship)
+- evidence_span: string (exact full quoted text from the document that supports this relationship)
 - doc_url: string (format as "doc_id.pdf" where doc_id comes from the chunk metadata, e.g., "nvidia-10k.pdf")
 - effective_start: string or null (date in YYYY-MM-DD format if mentioned, otherwise null)
 - effective_end: string or null (date in YYYY-MM-DD format if mentioned, otherwise null)
 - confidence: float (0.0 to 1.0, based on how explicit and clear the relationship is)
 
-Only extract relationships that are explicitly stated in the text. Do not infer relationships that are not clearly mentioned.
+Only extract relationships that are explicitly stated in the text. Do not infer relationships that are not clearly mentioned. Only extract relationships where the buyer is an actual explicit company name and the supplier is also an explicit company name.
 If no relationships are found, return an empty array [].
 
 Document Chunks:
