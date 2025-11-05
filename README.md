@@ -34,7 +34,7 @@ To extract relationships, run in order:
 python parse_pdfs.py
 python chunk.py
 python embed_and_index.py
-python extract_once.py
+python format.llm.py
 ```
 
 The pdf parser will ignore documents that have already been parsed.

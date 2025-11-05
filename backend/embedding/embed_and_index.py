@@ -1,4 +1,4 @@
-import os, json, numpy as np, faiss
+import os, json, numpy as np, faiss, time
 from typing import List
 from google.cloud import aiplatform
 from vertexai.language_models import TextEmbeddingModel
@@ -6,6 +6,10 @@ from vertexai.language_models import TextEmbeddingModel
 # default embedding model = gemini-embedding-001
 EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 EMBED_BATCH = int(os.environ["EMBEDDING_BATCH"])
+
+# Rate limiting: requests per minute
+EMBED_RPM = int(os.getenv("EMBEDDING_RPM", "30"))  # Reduced from 60 to 30
+EMBED_DELAY = 60.0 / EMBED_RPM  # seconds between batches
 
 # HNSW knobs
 HNSW_M = int(os.environ["HNSW_M"])
@@ -18,10 +22,19 @@ aiplatform.init(project=os.environ["GOOGLE_CLOUD_PROJECT"], location=os.environ[
 def embed_texts(texts: List[str], batch_size: int = EMBED_BATCH) -> np.ndarray:
     model = TextEmbeddingModel.from_pretrained(EMBED_MODEL)
     vecs = []
-    for i in range(0, len(texts), batch_size):
+    total_batches = (len(texts) + batch_size - 1) // batch_size
+    
+    for batch_idx, i in enumerate(range(0, len(texts), batch_size), start=1):
         batch = texts[i : i + batch_size]
+        
+        # Call embedding API
         embs = model.get_embeddings(batch)
         vecs.extend([e.values for e in embs])
+        
+        # Throttle to respect rate limits
+        if batch_idx < total_batches:  # Don't sleep after last batch
+            print(f"Embedded batch {batch_idx}/{total_batches}, sleeping {EMBED_DELAY:.2f}s...")
+            time.sleep(EMBED_DELAY)
 
     X = np.array(vecs, dtype="float32")
 

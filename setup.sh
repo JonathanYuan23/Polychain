@@ -17,11 +17,11 @@ export HNSW_M="32"          # per-node degree
 export HNSW_EFCON="200"     # efConstruction: how many entry points explored when building the index
 export HNSW_EFSEARCH="128"   # efSearch: how many entry points explored during the search
 
-export RETRIEVE_TOP_K="100"
+export RETRIEVE_TOP_K="300"
 
 # ---- Reranker ----
 export RERANKER_MODEL="cross-encoder/ms-marco-MiniLM-L-6-v2"
 export RERANKER_MAX_TOKENS="512"
 export RERANKER_BATCH="32"
 
-export RERANKER_TOP_M="30"
+export RERANKER_TOP_M="100"
