@@ -13,7 +13,8 @@ export const transformRelationship = (
   rel: Relationship,
   isSupplier: boolean
 ): SupplyChainRelationship => {
-  const id = `${rel.supplier}-${rel.buyer}`;
+  // Create unique ID including relation_type and role to handle multiple relationships between same companies
+  const id = `${rel.supplier}-${rel.buyer}-${rel.relation_type}-${rel.role}`;
   
   return {
     id,
@@ -33,7 +34,7 @@ export const transformCompanyRelationships = (
   data: CompanyRelationshipsResponse
 ): SupplyChainNetwork => {
   const companies = new Map<string, Company>();
-  const relationships: SupplyChainRelationship[] = [];
+  const relationshipsMap = new Map<string, SupplyChainRelationship>();
 
   // Add the selected company
   companies.set(data.company, {
@@ -45,7 +46,7 @@ export const transformCompanyRelationships = (
 
   // Process suppliers (companies that supply TO the selected company)
   data.suppliers.forEach((rel) => {
-    // Add supplier company
+    // Add supplier company if not already added
     if (!companies.has(rel.supplier)) {
       companies.set(rel.supplier, {
         id: rel.supplier,
@@ -54,15 +55,9 @@ export const transformCompanyRelationships = (
         type: 'supplier',
       });
     }
-
-    // Add relationship (supplier -> selected company)
-    relationships.push(transformRelationship(rel, true));
-  });
-
-  // Process buyers (companies that BUY FROM the selected company)
-  data.buyers.forEach((rel) => {
-    // Add buyer company
-    if (!companies.has(rel.buyer)) {
+    
+    // Also add buyer company if it's not the selected company
+    if (rel.buyer !== data.company && !companies.has(rel.buyer)) {
       companies.set(rel.buyer, {
         id: rel.buyer,
         name: rel.buyer,
@@ -71,13 +66,41 @@ export const transformCompanyRelationships = (
       });
     }
 
-    // Add relationship (selected company -> buyer)
-    relationships.push(transformRelationship(rel, false));
+    // Add relationship (supplier -> buyer) - deduplicate by ID
+    const transformedRel = transformRelationship(rel, true);
+    relationshipsMap.set(transformedRel.id, transformedRel);
+  });
+
+  // Process buyers (companies that BUY FROM the selected company)
+  data.buyers.forEach((rel) => {
+    // Add buyer company if not already added
+    if (!companies.has(rel.buyer)) {
+      companies.set(rel.buyer, {
+        id: rel.buyer,
+        name: rel.buyer,
+        industry: 'Unknown',
+        type: 'customer',
+      });
+    }
+    
+    // Also add supplier company if it's not the selected company
+    if (rel.supplier !== data.company && !companies.has(rel.supplier)) {
+      companies.set(rel.supplier, {
+        id: rel.supplier,
+        name: rel.supplier,
+        industry: 'Unknown',
+        type: 'supplier',
+      });
+    }
+
+    // Add relationship (supplier -> buyer) - deduplicate by ID
+    const transformedRel = transformRelationship(rel, false);
+    relationshipsMap.set(transformedRel.id, transformedRel);
   });
 
   return {
     companies: Array.from(companies.values()),
-    relationships,
+    relationships: Array.from(relationshipsMap.values()),
   };
 };
 

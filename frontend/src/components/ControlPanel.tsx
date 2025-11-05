@@ -99,17 +99,6 @@ export const ControlPanel = ({
           >
             Reset to Default View
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start terminal-text border-terminal-grid hover:bg-muted"
-            onClick={() => {
-              onFilterChange(['suppliers']);
-              onNetworkDepthChange(2);
-            }}
-          >
-            Supplier Deep Dive
-          </Button>
         </div>
       </div>
     </div>

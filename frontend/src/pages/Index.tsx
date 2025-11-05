@@ -23,8 +23,11 @@ const Index = () => {
     console.log('Clicked node:', companyId);
   }, []);
 
-  // Fetch data from backend API
-  const { data: relationshipsData, isLoading, isError, error } = useCompanyRelationships(selectedCompany?.name);
+  // Fetch data from backend API with specified network depth
+  const { data: relationshipsData, isLoading, isError, error } = useCompanyRelationships(
+    selectedCompany?.name,
+    networkDepth
+  );
   const { data: health, isError: healthError } = useHealthCheck();
 
   // Transform backend data to frontend format
