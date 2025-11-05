@@ -37,15 +37,25 @@ const Index = () => {
 
   // Filter relationships based on controls
   const filteredRelationships = currentNetwork.relationships.filter(rel => {
-    // Relationship type filters - use OR logic
-    const typeFilters = ['suppliers', 'customers', 'partners'].filter(f => selectedFilters.includes(f));
-    if (typeFilters.length > 0) {
-      const matchesType = 
-        (selectedFilters.includes('suppliers') && rel.relationship_type === 'supplier') ||
-        (selectedFilters.includes('customers') && rel.relationship_type === 'customer') ||
-        (selectedFilters.includes('partners') && rel.relationship_type === 'partner');
+    // If no filters selected, show all
+    if (selectedFilters.length === 0) return true;
+    
+    // For multi-degree networks, check if relationship involves selected company
+    if (selectedCompany) {
+      const isSupplierToSelected = rel.to === selectedCompany.id; // Someone supplying TO selected company
+      const isCustomerOfSelected = rel.from === selectedCompany.id; // Selected company supplying TO someone
       
-      if (!matchesType) return false;
+      // If this relationship doesn't involve the selected company at all, include it
+      // (it's a second-degree or higher relationship)
+      if (!isSupplierToSelected && !isCustomerOfSelected) {
+        return true;
+      }
+      
+      // If it involves the selected company, filter based on user's selection
+      if (selectedFilters.includes('suppliers') && isSupplierToSelected) return true;
+      if (selectedFilters.includes('customers') && isCustomerOfSelected) return true;
+      
+      return false;
     }
     
     return true;
@@ -215,8 +225,8 @@ const Index = () => {
             <span>Data as of: {new Date().toLocaleDateString()}</span>
           </div>
           <div className="flex items-center gap-4">
-            <span>Bloomberg Terminal for Supply Chain v1.0</span>
-            <span className="text-terminal-yellow">© 2024</span>
+            <span>Polychain v0.1.1</span>
+            <span className="text-terminal-yellow">© 2025</span>
           </div>
         </div>
       </footer>

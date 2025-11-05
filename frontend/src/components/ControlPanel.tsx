@@ -18,8 +18,7 @@ export const ControlPanel = ({
 }: ControlPanelProps) => {
   const filterOptions = [
     { value: 'suppliers', label: 'Suppliers' },
-    { value: 'customers', label: 'Customers' },
-    { value: 'partners', label: 'Partners' }
+    { value: 'customers', label: 'Customers' }
   ];
 
   const toggleFilter = (filter: string) => {
