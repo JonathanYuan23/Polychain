@@ -13,7 +13,7 @@ interface DependenciesListViewProps {
   onCompanyClick: (companyId: string) => void;
 }
 
-type SortField = 'company' | 'type' | 'value' | 'direction';
+type SortField = 'company' | 'type' | 'direction' | 'relation';
 type SortDirection = 'asc' | 'desc' | null;
 
 export const DependenciesListView = ({ 
@@ -23,7 +23,7 @@ export const DependenciesListView = ({
   onCompanyClick 
 }: DependenciesListViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState<SortField>('value');
+  const [sortField, setSortField] = useState<SortField>('company');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
@@ -73,9 +73,9 @@ export const DependenciesListView = ({
             aValue = a.counterpartyType;
             bValue = b.counterpartyType;
             break;
-          case 'value':
-            aValue = a.value;
-            bValue = b.value;
+          case 'relation':
+            aValue = a.relation_type || '';
+            bValue = b.relation_type || '';
             break;
           case 'direction':
             aValue = a.direction;
@@ -215,22 +215,23 @@ export const DependenciesListView = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleSort('type')}
+                      onClick={() => handleSort('type')}
                   className="h-6 p-1 terminal-text hover:bg-muted"
                 >
                   Type {getSortIcon('type')}
                 </Button>
               </th>
-              <th className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleSort('value')}
-                  className="h-6 p-1 terminal-text hover:bg-muted"
-                >
-                  Value {getSortIcon('value')}
-                </Button>
-              </th>
+                  <th className="text-left">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('relation')}
+                      className="h-6 p-1 terminal-text hover:bg-muted"
+                    >
+                      Relation {getSortIcon('relation')}
+                    </Button>
+                  </th>
+              
               <th className="text-center">
                 <Button
                   variant="ghost"
@@ -241,7 +242,7 @@ export const DependenciesListView = ({
                   Flow {getSortIcon('direction')}
                 </Button>
               </th>
-              <th className="text-left w-16">Industry</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -266,17 +267,12 @@ export const DependenciesListView = ({
                     {rel.counterpartyType}
                   </Badge>
                 </td>
-                <td className="text-right font-mono">
-                  <div className={`font-semibold ${
-                    rel.value > 15000000000 
-                      ? 'text-destructive'
-                      : rel.value > 8000000000
-                        ? 'terminal-warning'
-                        : 'terminal-success'
-                  }`}>
-                    {formatCurrency(rel.value)}
+                <td className="text-sm">
+                  <div className="text-xs text-muted-foreground">
+                    {rel.relation_type || '—'}
                   </div>
                 </td>
+                
                 <td className="text-center">
                   <div className={`text-xs ${
                     rel.direction === 'inbound' ? 'terminal-success' : 'terminal-info'
@@ -284,9 +280,7 @@ export const DependenciesListView = ({
                     {rel.direction === 'inbound' ? '← IN' : 'OUT →'}
                   </div>
                 </td>
-                <td className="text-xs text-muted-foreground">
-                  {rel.counterparty?.industry.split(' ')[0]}
-                </td>
+                
               </tr>
             ))}
           </tbody>

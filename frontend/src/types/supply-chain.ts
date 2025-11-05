@@ -13,6 +13,9 @@ export interface SupplyChainRelationship {
   to: string;
   value: number; // USD amount
   relationship_type: 'supplier' | 'customer' | 'partner';
+  // relation_type is the semantic relationship label extracted from docs
+  // examples: "manufactures_for", "supplies_components_to", "contract_manufactures_for", etc.
+  relation_type?: string;
   year: number;
 }
 
